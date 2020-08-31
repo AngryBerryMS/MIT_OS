@@ -1,11 +1,4 @@
 
 xv6 kernel is booting
 
-hart 2 starting
-hart 1 starting
-init: starting sh
-$ sh < xargstest.sh
-$ echo DONE
-$ $ $ $ $ exec find failed
-exec xargs failed
-$ $ DONEqemu-system-riscv64: terminating on signal 15 from pid 23353 (make)
+qemu-system-riscv64: terminating on signal 2
