@@ -3,7 +3,7 @@
 ``` 
 make qemu
 ```
-Note:\
+Note:
 1. `Ctrl-p`: print process information
 2. `Ctrl-a x`: quit qemu type
 ## sleep (easy) 
