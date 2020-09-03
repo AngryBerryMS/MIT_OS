@@ -11,7 +11,7 @@ int main(int argc, char *argv[]){
     int idx = 0, sieve, num;
     while(fork() == 0){
         if(read(p[idx][0],&sieve,1)){
-            fprintf(2,"prime %d\n",sieve);
+            fprintf(1,"prime %d\n",sieve);
             pipe(p[1^idx]);
             while(read(p[idx][0],&num,1)){
                 if(num % sieve != 0)
