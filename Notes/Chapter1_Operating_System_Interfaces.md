@@ -51,14 +51,13 @@ approach requires the first program to finish before the second starts.
 4. Fourth, if you are implementing inter-process communication, pipes’ blocking reads and writes are more efficient than the non-blocking semantics of files.
 ## File System
 ### I. functions
-1. `mknod` creates a special file that refers to a device. Associated with a
-device file are the `major` and `minor` device numbers (the two arguments to mknod), which uniquely identify a kernel device. When a process later opens a
-device file, the kernel diverts read and write system calls to the
-kernel device implementation instead of passing them to the file system.
-2. `inode` - the entity of file, `links` - file name, one file can have multiple names. Each link consists of an entry in a directory; the entry contains a file name and a reference to an inode. An inode holds `metadata` about a file, including its type (file or directory or device), its length, the location of the file’s content on disk, and the number of links to a file.
+1. `mknod` creates a special file that refers to a device. The two arguments `major` and `minor` device numbers uniquely defines a device. When a process
+later opens a device file, the kernel diverts read and write system calls to the kernel device implementation instead of passing them to the file system.
+2. `inode` - the entity of file, `links` - file name, one file can have multiple names. An inode holds `metadata` about a file, including type (file or directory or device), length, location and the number of links to a file.
 3. The `fstat` system call retrieves information from the `inode` that a file descriptor refers to. It fills in a struct `stat`, defined in `stat.h`.
-4. The `link` system call creates another file system name referring to the same inode as an existing file.
-5. The `unlink` system call removes a name from the file system. The file’s inode and the disk space holding its content are only freed when the file’s link count is zero and no file descriptors refer to it. 
+4. `link` links file name to a file.
+5. `unlink` unlinks the file name. 
+6. The file’s inode and the disk space holding its content are only freed when the file’s link count is zero and no file descriptors refer to it. 
 ### II. why `cd` is embeded in the shell
 1. Unix provides file utilities callable from the shell as user-level programs, for example `mkdir`, `ln`, and `rm`. This design allows anyone to extend the command-line interface by adding new userlevel programs. 
 2. `cd` is an exception. If `cd` were run as a regular command, then the shell would fork a child process, the child process would run `cd`, and `cd` would change the child ’s working directory. The parent’s (i.e., the shell’s)
