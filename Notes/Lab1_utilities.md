@@ -6,7 +6,32 @@ make qemu
 Note:
 1. `Ctrl-p`: print process information
 2. `Ctrl-a x`: quit qemu type
-## sleep (easy) 
+## sleep (easy) ✔
+### I. add sleep to makefile
+```
+    UPROGS=\
+        ...
++       $U/_sleep\
+```
+### II. creates `/user/sleep.c`
+```
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "user/user.h"
+
+int
+main(int argc, char *argv[])
+{
+  if(argc != 2){
+      fprintf(2, "usage: sleep time\n");
+      exit(1);
+  } else {
+      int time = atoi(argv[1]);
+      sleep(time);
+      exit(0);
+  }
+}
+```
 ## pingpong (easy)
 ## primes (moderate)
 ## find (moderate)
