@@ -27,7 +27,7 @@ int main(int argc, char *argv[]){
   }
 }
 ```
-## pingpong (easy)
+## pingpong (easy) ✔
 ### I. add pingpong to makefile
 ```
     UPROGS=\
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]){
     exit(0);
 }
 ```
-## primes (moderate)
+## primes (moderate) ✔
 ### I. add primes to makefile
 ```
     UPROGS=\
