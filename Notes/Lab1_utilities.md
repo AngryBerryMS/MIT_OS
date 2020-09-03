@@ -34,25 +34,22 @@ int main(int argc, char *argv[]){
         ...
 +       $U/_pingpong\
 ```
-### II. creates `/user/sleep.c`
+### II. creates `/user/pingpong.c`
 ```
 ...
 int main(int argc, char *argv[]){
     int p1[2], p2[2];
     pipe(p1);
     pipe(p2);
+    char buf[1];
     if(fork() == 0){
-        char buf[1];
-        read(p1[0],buf,1);
-        if(*buf == 'A')
+        if(read(p1[0],buf,1))
             fprintf(2,"%d: received ping\n",getpid());
         write(p2[1],"B",1);
         close(p2[1]);
     } else {
-        char buf[1];
         write(p1[1],"A",1);
-        read(p2[0],buf,1);
-        if(*buf == 'B')
+        if(read(p2[0],buf,1))
             fprintf(2,"%d: received pong\n",getpid());
         close(p1[1]);
     }
@@ -60,6 +57,40 @@ int main(int argc, char *argv[]){
 }
 ```
 ## primes (moderate)
+### I. add primes to makefile
+```
+    UPROGS=\
+        ...
++       $U/_primes\
+```
+### II. creates `/user/primes.c`
+```
+...
+int main(int argc, char *argv[]){
+    int p[2][2];
+    pipe(p[0]);
+    for(int i = 2; i <= 35; i++)
+        write(p[0][1],&i,1);
+    close(p[0][1]);
+    int idx = 0, sieve, num;
+    while(fork() == 0){
+        if(read(p[idx][0],&sieve,1)){
+            fprintf(2,"prime %d\n",sieve);
+            pipe(p[1^idx]);
+            while(read(p[idx][0],&num,1)){
+                if(num % sieve != 0)
+                    write(p[idx^1][1],&num,1);
+            }
+            close(p[1^idx][1]);
+            idx ^= 1;
+        } else {
+            exit(0);
+        }
+    }
+    wait(0);
+    exit(0);
+}
+```
 ## find (moderate)
 ## xargs (moderate)
 ## (optional) uptime (easy)
