@@ -152,8 +152,41 @@ int main(int argc, char *argv[]){
     exit(0);
 }
 ```
-
-## xargs (moderate)
+## xargs (moderate) ✔
+### I. add xargs to makefile
+```
+    UPROGS=\
+        ...
++       $U/_xargs\
+```
+### II. creates `/user/xargs.c`
+```
+...
+int main(int argc, char *argv[]){
+    if(argc < 2){
+        fprintf(2,"usage: xargs cmd [...]\n");
+        exit(1);        
+    }
+    int flag = 1;
+    char **newargv = malloc(sizeof(char*)*(argc+2));
+    memcpy(newargv,argv,sizeof(char*)*(argc+1));
+    newargv[argc+1] = 0; // null pointer for last one
+    while(flag){
+        char buf[512], *p = buf;
+        while((flag = read(0,p,1)) && *p != '\n')
+            p++;
+        if(!flag) exit(0);
+        *p = 0;
+        newargv[argc] = buf;
+        if(fork() == 0){
+            exec(argv[1], newargv+1);
+            exit(0);
+        }
+        wait(0);
+    }
+    exit(0);
+}
+```
 ## (optional) uptime (easy)
 Write an uptime program that prints the uptime in terms of ticks using the uptime system call.
 ## (optinoal) find (easy)
