@@ -41,7 +41,6 @@ sys_trace(void)
   return 0;
 }
 ```
-Note: refer to https://medium.com/@viduniwickramarachchi/add-a-new-system-call-in-xv6-5486c2437573 for better understanding.
 ### VII. modify `fork()` to copy `tracemask` from parent process to child process in proc.c
 ```
 int
@@ -89,6 +88,7 @@ syscall(void)
     }
 }
 ```
+Note: refer to https://medium.com/@viduniwickramarachchi/add-a-new-system-call-in-xv6-5486c2437573 for better understanding.
 ## Sysinfo (moderate)
 ## (optional) Print the system call arguments for traced system calls (easy)
 ## (optional) Compute the load average and export it through sysinfo(moderate)
