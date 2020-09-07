@@ -1,5 +1,5 @@
 # Lab 2: System Calls
-## System call tracing (moderate)
+## System call tracing (moderate) ✔
 ### I. add trace to makefile
 ```
     UPROGS=\
