@@ -12,7 +12,7 @@
     ...
 +   int trace(int);
 ```
-### III. add trace to user/usys.pl
+### III. add trace to user/usys.pl, which modify `user/usys.S` the actual system call stubs
 ```
     ...
 +   entry("trace");
@@ -89,6 +89,30 @@ syscall(void)
 }
 ```
 Note: refer to https://medium.com/@viduniwickramarachchi/add-a-new-system-call-in-xv6-5486c2437573 for better understanding.
-## Sysinfo (moderate)
+## Sysinfo (moderate) ❌ (kernel/sysinfo.h is missing, waiting for update)
+### I. add sysinfotest to makefile
+```
+    UPROGS=\
+        ...
++       $U/_sysinfotest\
+```
+### II. add sysinfotest to user/user.h
+```
+    ...
++   struct sysinfo;
+    // system calls
+    ...
++   int sysinfo(struct sysinfo *);
+```
+### III. add sysinfotest to user/usys.pl, which modify `user/usys.S` the actual system call stubs
+```
+    ...
++   entry("sysinfotest");
+```
+### IV. add sysinfotest to kernel/syscall.h
+```
+    ...
++   #define SYS_sysinfotest  23
+```
 ## (optional) Print the system call arguments for traced system calls (easy)
 ## (optional) Compute the load average and export it through sysinfo(moderate)
