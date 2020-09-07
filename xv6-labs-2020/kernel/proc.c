@@ -295,9 +295,6 @@ fork(void)
 
   np->state = RUNNABLE;
 
-  // Copy the trace mask from parent to child
-  np->tracemask = p->tracemask;
-
   release(&np->lock);
 
   return pid;
@@ -486,10 +483,14 @@ scheduler(void)
       }
       release(&p->lock);
     }
+#if !defined (LAB_FS)
     if(found == 0) {
       intr_on();
       asm volatile("wfi");
     }
+#else
+    ;
+#endif
   }
 }
 
