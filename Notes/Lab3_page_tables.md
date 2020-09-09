@@ -1,5 +1,5 @@
 # Lab 3: Page Tables
-## Print page table(easy)
+## Print page table(easy) ✔
 1. add prototype to kernel/defs.h
 ```
     // vm.c
