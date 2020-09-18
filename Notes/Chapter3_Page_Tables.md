@@ -125,7 +125,7 @@ grows from high to low, guard page is lower.
 ### II. usage of process's page table
 1. tell the hardware how to map user va.
 2. as the only record of thich physical memory pages are allocated to that process.
-## exec
+## Code: exec
 ### I. overview
 1. `exec` is the system call that creates the user part of an address space.
 2. it opens `path` using `namei`, then reads the ELF header `struct elfhdr`, followed by a sequence of program section headers, `struct proghdr`, each describes a section of the application that must be loaded into memory.
