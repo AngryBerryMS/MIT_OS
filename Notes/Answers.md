@@ -14,3 +14,40 @@ Example:
     len:    0xffffffff80000000
     p->sz:  0x0000000002000000
 ```
+## Lab 4: Traps
+### I. Which registers contain arguments to functions? For example, which register holds 13 in main's call to printf?
+```
+a0 to a7 for integer and fa0 to fa7 for floats.
+In this case, a2 holds 13 for printf
+```
+### II. Where is the call to function f in the assembly code for main? Where is the call to g? (Hint: the compiler may inline functions.) ❓
+```
+Did it call f? In my call.asm it directly use 'li a1,12' in which 12 is precalculated result for f(8) + 1
+```
+### III. At what address is the function printf located?
+```
+0x628
+```
+### IV. What value is in the register ra just after the jalr to printf in main?
+```
+0x38, the address of next instruction after jalr
+```
+### V. Run the following code.
+```
+    unsigned int i = 0x00646c72;
+    printf("H%x Wo%s", 57616, &i);
+```
+What is the output?
+The output depends on that fact that the RISC-V is little-endian. If the RISC-V were instead big-endian what would you set i to in order to yield the same output? Would you need to change 57616 to a different value?
+```
+He110 World
+57116 is e110 in hex and 0x00646c72 is 'dlr' according to ascii table.
+If it's big endian, no need to change 57616 but need to reverse the value in i to 0x726c6400 (because it's read byte by byte).
+```
+### VI. In the following code, what is going to be printed after 'y='? (note: the answer is not a specific value.) Why does this happen?
+```
+	printf("x=%d y=%d", 3);
+```
+```
+it prints value in register a2.
+```
