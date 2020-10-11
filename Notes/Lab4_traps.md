@@ -10,7 +10,7 @@ void backtrace(void){
     printf("%p\n", *(uint64 *)(fp - 8));
 }
 ```
-## Alarm (hard)
+## Alarm (hard) ✔
 test0: see Lab2_system_calls.md for how to add a system call
 files needs to be modified for system call: kernel/syscall.c, kernel/syscall.h, user/user.h, user/usys.pl, Makefile
 add below in kernel/sysproc.c

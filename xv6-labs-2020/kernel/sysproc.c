@@ -69,7 +69,6 @@ sys_sleep(void)
     }
     sleep(&ticks, &tickslock);
   }
-  backtrace();
   release(&tickslock);
   return 0;
 }
@@ -95,23 +94,4 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
-}
-
-uint64 sys_sigalarm(void){
-  struct proc* p = myproc();
-  // read param1
-  argint(0, &p->ticks_interval);
-  // read param2
-  uint64 func;
-  argaddr(1,&func);
-  p->handler = (void (*)())func;
-  return 0;
-}
-
-uint64 sys_sigreturn(void){
-  // restore registers
-  struct proc *p = myproc();
-  p->ishandling = 0;
-  memmove(p->trapframe,p->savedtrapframe,sizeof(struct proc));
-  return 0;
 }
