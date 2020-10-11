@@ -20,9 +20,10 @@ Example:
 a0 to a7 for integer and fa0 to fa7 for floats.
 In this case, a2 holds 13 for printf
 ```
-### II. Where is the call to function f in the assembly code for main? Where is the call to g? (Hint: the compiler may inline functions.) ❓
+### II. Where is the call to function f in the assembly code for main? Where is the call to g? (Hint: the compiler may inline functions.)
 ```
-Did it call f? In my call.asm it directly use 'li a1,12' in which 12 is precalculated result for f(8) + 1
+main didn't call f, because compiler has optimized that process, in call.asm, it's straight 'li a1,12'
+f did call g, but it is inline (directly use 'addiw a0, a0, 3')
 ```
 ### III. At what address is the function printf located?
 ```
