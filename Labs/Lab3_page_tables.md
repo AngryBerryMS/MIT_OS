@@ -41,7 +41,7 @@ void vmprint(pagetable_t pagetable){
   }
 }
 ```
-## A kernel page table per process (hard) (actually bypassed)✔ + Simplify copyin/copyinstr (hard) ✔
+## A kernel page table per process (hard) (actually bypassed) ❓ + Simplify copyin/copyinstr (hard) ✔
 1. modify `kernel/exec.c`, so xv6 will create a kernel page table when run `exec()`
 ```
 + void vmcopy(pagetable_t pagetable1, pagetable_t pagetable2);
