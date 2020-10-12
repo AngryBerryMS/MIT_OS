@@ -16,6 +16,22 @@ void kernelvec();
 
 extern int devintr();
 
+int lazyalloc(uint64 notmapped){
+  struct proc *p = myproc();
+  pagetable_t pagetable = p->pagetable;
+  char *mem;
+  uint64 sp = p->trapframe->sp;
+  if(notmapped > p->sz || (notmapped < sp) || (mem = kalloc()) == 0){
+    return -1;
+  } else {
+    memset(mem,0,PGSIZE);
+    if(mappages(pagetable, notmapped, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
+      kfree(mem);
+      return -1;
+    }
+  }
+  return 0;
+}
 void
 trapinit(void)
 {
@@ -64,9 +80,28 @@ usertrap(void)
     // so don't enable until done with those registers.
     intr_on();
 
-    syscall();
+    int num = p->trapframe->a7, valid = 0;
+    uint64 va;
+    if(num == 16 || num == 4 || num == 5){
+      if(num == 16 || num == 5){ // sys_write sys_read
+        argaddr(1, &va);
+      } else if (num == 4) { // sys_pipe
+        argaddr(0, &va);
+      }
+      if(walkaddr(p->pagetable,va) == 0){
+        lazyalloc(PGROUNDDOWN(va));
+      }
+    }
+    if(valid == -1){
+      p->trapframe->a0 = -1;
+    } else {
+      syscall();
+    }
   } else if((which_dev = devintr()) != 0){
     // ok
+  } else if (r_scause() == 13 || r_scause() == 15){
+    if(lazyalloc(PGROUNDDOWN(r_stval())) == -1)
+      p->killed = 1;
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
