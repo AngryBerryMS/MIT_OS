@@ -6,7 +6,6 @@
 #include "defs.h"
 #include "fs.h"
 
-extern int PGCNT[TOTPAGE];
 /*
  * the kernel's page table.
  */
@@ -30,9 +29,6 @@ kvminit()
 
   // virtio mmio disk interface
   kvmmap(VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
-
-  // CLINT
-  kvmmap(CLINT, CLINT, 0x10000, PTE_R | PTE_W);
 
   // PLIC
   kvmmap(PLIC, PLIC, 0x400000, PTE_R | PTE_W);
@@ -69,7 +65,7 @@ kvminithart()
 //   21..29 -- 9 bits of level-1 index.
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
-pte_t *
+static pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
   if(va >= MAXVA)
@@ -120,26 +116,6 @@ kvmmap(uint64 va, uint64 pa, uint64 sz, int perm)
 {
   if(mappages(kernel_pagetable, va, sz, pa, perm) != 0)
     panic("kvmmap");
-}
-
-// translate a kernel virtual address to
-// a physical address. only needed for
-// addresses on the stack.
-// assumes va is page aligned.
-uint64
-kvmpa(uint64 va)
-{
-  uint64 off = va % PGSIZE;
-  pte_t *pte;
-  uint64 pa;
-  
-  pte = walk(kernel_pagetable, va, 0);
-  if(pte == 0)
-    panic("kvmpa");
-  if((*pte & PTE_V) == 0)
-    panic("kvmpa");
-  pa = PTE2PA(*pte);
-  return pa+off;
 }
 
 // Create PTEs for virtual addresses starting at va that refer to
@@ -284,7 +260,7 @@ freewalk(pagetable_t pagetable)
       freewalk((pagetable_t)child);
       pagetable[i] = 0;
     } else if(pte & PTE_V){
-      // panic("freewalk: leaf");
+      panic("freewalk: leaf");
     }
   }
   kfree((void*)pagetable);
@@ -356,16 +332,12 @@ int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
-  pte_t *pte;
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
-    pte = walk(pagetable, va0, 0);
-    if(!(*pte & PTE_W))
-      cowalloc(pagetable, va0);
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
@@ -444,50 +416,4 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
-}
-
-int getvaidx(uint64 pa){
-  return (pa - KERNBASE) / PGSIZE; 
-}
-
-// copy from 1 to 2, return -1 when error occurs, return 0 when OK
-int vmcopy(pagetable_t pagetable1, pagetable_t pagetable2, uint64 sz){
-  uint64 mem, pagesleft = (sz + PGSIZE - 1) / PGSIZE;
-  for(int i = 0; i < PAGETABLE_LIMIT; i++){
-    pagetable_t PTE_11 = (pagetable_t)PTE2PA(pagetable1[i]);
-    if(pagetable1[i] & PTE_V) {
-      // install pagetable in pagetable2[i]
-      if((mem = (uint64)kalloc()) == 0)
-        return -1;
-      pagetable2[i] = PA2PTE(mem) | PTE_V;
-      memset((void *)mem,0,PGSIZE);
-      pagetable_t PTE_21 = (pagetable_t)PTE2PA(pagetable2[i]);
-
-      for(int j = 0; j < PAGETABLE_LIMIT; j++){
-        pagetable_t PTE_12 = (pagetable_t)PTE2PA(PTE_11[j]);
-        if(PTE_11[j] & PTE_V) {
-          // install pagetable in PTE_21[j]
-          if((mem = (uint64)kalloc()) == 0)
-            return -1;
-          PTE_21[j] = PA2PTE(mem) | PTE_V;
-          memset((void *)mem,0,PGSIZE);
-          pagetable_t PTE_22 = (pagetable_t)PTE2PA(PTE_21[j]);
-
-          for(int k = 0; k < PAGETABLE_LIMIT; k++){
-            if(pagesleft == 0) 
-              return 0;
-            if(PTE_12[k] & PTE_V){
-              PTE_12[k] &= ~PTE_W; // clear W
-              PTE_22[k] = (PTE_12[k] & ~0x3FF) | PTE_R | PTE_X | PTE_U | PTE_V; // copy from parent to child
-              PGCNT[getvaidx(PTE2PA(PTE_12[k]))]++;
-              pagesleft--;
-            }
-          }
-
-        }
-      }
-
-    }
-  }
-  return 0;
 }
