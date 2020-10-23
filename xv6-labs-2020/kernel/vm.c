@@ -6,6 +6,7 @@
 #include "defs.h"
 #include "fs.h"
 
+extern int PGCNT[TOTPAGE];
 /*
  * the kernel's page table.
  */
@@ -283,7 +284,7 @@ freewalk(pagetable_t pagetable)
       freewalk((pagetable_t)child);
       pagetable[i] = 0;
     } else if(pte & PTE_V){
-      panic("freewalk: leaf");
+      // panic("freewalk: leaf");
     }
   }
   kfree((void*)pagetable);
@@ -355,12 +356,16 @@ int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
+  pte_t *pte;
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
+    pte = walk(pagetable, va0, 0);
+    if(!(*pte & PTE_W))
+      cowalloc(pagetable, va0);
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
@@ -439,4 +444,50 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+int getvaidx(uint64 pa){
+  return (pa - KERNBASE) / PGSIZE; 
+}
+
+// copy from 1 to 2, return -1 when error occurs, return 0 when OK
+int vmcopy(pagetable_t pagetable1, pagetable_t pagetable2, uint64 sz){
+  uint64 mem, pagesleft = (sz + PGSIZE - 1) / PGSIZE;
+  for(int i = 0; i < PAGETABLE_LIMIT; i++){
+    pagetable_t PTE_11 = (pagetable_t)PTE2PA(pagetable1[i]);
+    if(pagetable1[i] & PTE_V) {
+      // install pagetable in pagetable2[i]
+      if((mem = (uint64)kalloc()) == 0)
+        return -1;
+      pagetable2[i] = PA2PTE(mem) | PTE_V;
+      memset((void *)mem,0,PGSIZE);
+      pagetable_t PTE_21 = (pagetable_t)PTE2PA(pagetable2[i]);
+
+      for(int j = 0; j < PAGETABLE_LIMIT; j++){
+        pagetable_t PTE_12 = (pagetable_t)PTE2PA(PTE_11[j]);
+        if(PTE_11[j] & PTE_V) {
+          // install pagetable in PTE_21[j]
+          if((mem = (uint64)kalloc()) == 0)
+            return -1;
+          PTE_21[j] = PA2PTE(mem) | PTE_V;
+          memset((void *)mem,0,PGSIZE);
+          pagetable_t PTE_22 = (pagetable_t)PTE2PA(PTE_21[j]);
+
+          for(int k = 0; k < PAGETABLE_LIMIT; k++){
+            if(pagesleft == 0) 
+              return 0;
+            if(PTE_12[k] & PTE_V){
+              PTE_12[k] &= ~PTE_W; // clear W
+              PTE_22[k] = (PTE_12[k] & ~0x3FF) | PTE_R | PTE_X | PTE_U | PTE_V; // copy from parent to child
+              PGCNT[getvaidx(PTE2PA(PTE_12[k]))]++;
+              pagesleft--;
+            }
+          }
+
+        }
+      }
+
+    }
+  }
+  return 0;
 }

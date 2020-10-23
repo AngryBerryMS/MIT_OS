@@ -16,6 +16,22 @@ void kernelvec();
 
 extern int devintr();
 
+// install new va for pagetable, return -1 to kill current process
+int cowalloc(pagetable_t pagetable, uint64 va){
+  if(va > MAXVA || walkaddr(pagetable, PGROUNDDOWN(va)) == 0)
+    return -1;
+  uint64 old = walkaddr(pagetable,PGROUNDDOWN(va));
+  void* new = kalloc();
+  if(new == 0){
+    return -1;
+  } else {
+    memmove(new, (void*)old, PGSIZE);
+    pte_t* pte = walk(pagetable, va, 0);
+    *pte = PA2PTE((uint64)new)|PTE_W|PTE_FLAGS(*pte); // install and set W
+    kfree((void*)old);
+    return 0;
+  }
+}
 void
 trapinit(void)
 {
@@ -67,6 +83,9 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+  } else if(r_scause() == 13 || r_scause() == 15) {
+    if(cowalloc(p->pagetable, r_stval()) == -1) // no more pages available
+      p->killed = 1; 
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
@@ -143,7 +162,9 @@ kerneltrap()
   if(intr_get() != 0)
     panic("kerneltrap: interrupts enabled");
 
-  if((which_dev = devintr()) == 0){
+  if(r_scause() == 13 || r_scause() == 15){
+    cowalloc(myproc()->pagetable, r_stval());
+  } else if((which_dev = devintr()) == 0){
     printf("scause %p\n", scause);
     printf("sepc=%p stval=%p\n", r_sepc(), r_stval());
     panic("kerneltrap");
