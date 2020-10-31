@@ -1,6 +1,5 @@
 # Lab 6: Copy on Write
 ## Implement copy-on write(hard) ✔
-### 0. usertests didn't pass
 ### 1. kernel/defs.h
 add these declarations
 ```

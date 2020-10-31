@@ -40,5 +40,33 @@ thread_switch(&t->context, &next_thread->context);
   t->context.ra = (uint64)func;
   t->context.sp = (uint64)t->stack + STACK_SIZE;
 ```
-## Using threads (moderate)
+## Using threads (moderate) ✔
+1. declear a lock
+```
+pthread_mutex_t lock[NBUCKET];            // declare a lock
+```
+2. new insert()
+```
+    static void 
+*   insert(int key, int value, struct entry **p)
+    {
+        struct entry *e = malloc(sizeof(struct entry));
+        e->key = key;
+        e->value = value;
++       pthread_mutex_lock(&lock[key % NBUCKET]);       // acquire lock
+*       e->next = *p;
+        *p = e;
++       pthread_mutex_unlock(&lock[key % NBUCKET]);     // release lock
+    }
+```
+3. new put()
+```
+*   insert(key, value, &table[i]);
+```
+4. add initlock to main()
+```
+  for(int i = 0; i < NBUCKET; i++){
+    pthread_mutex_init(&lock[i], NULL); // initialize the lock
+  }
+```
 ## Barrier(moderate)
