@@ -69,4 +69,22 @@ pthread_mutex_t lock[NBUCKET];            // declare a lock
     pthread_mutex_init(&lock[i], NULL); // initialize the lock
   }
 ```
-## Barrier(moderate)
+## Barrier(moderate) ✔
+```
+static void 
+barrier()
+{
+  round++;
+  if(round == nthread){
+    pthread_mutex_lock(&bstate.barrier_mutex);   
+    pthread_cond_broadcast(&bstate.barrier_cond);   
+    pthread_mutex_unlock(&bstate.barrier_mutex);
+    round = 0;
+    bstate.round++;
+  } else {
+    pthread_mutex_lock(&bstate.barrier_mutex);
+    pthread_cond_wait(&bstate.barrier_cond,&bstate.barrier_mutex);   
+    pthread_mutex_unlock(&bstate.barrier_mutex);
+  }
+}
+```
