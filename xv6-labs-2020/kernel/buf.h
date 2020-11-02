@@ -1,8 +1,6 @@
 struct buf {
   int valid;   // has data been read from disk?
   int disk;    // does disk "own" buf?
-  int active;  // is it in use? (free/inuse vs inactive)
-  uint time;
   uint dev;
   uint blockno;
   struct sleeplock lock;

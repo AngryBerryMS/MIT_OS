@@ -74,7 +74,6 @@ kalloc(void)
 }
 ```
 ## Buffer cache (hard) ✔ (partial)
-### 0. didn't pass `manywrites` in usertests
 ### 1. buf.h
 add two fields
 ```
