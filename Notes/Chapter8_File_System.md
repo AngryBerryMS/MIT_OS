@@ -146,3 +146,47 @@ scans all blocks, find one block with bit 0, set it to 1 then return.
 ### VI. `iupdate()`
 mainly job is synchronization rather than caching.
 ## Code: Inodes
+similar to buffer cache
+### I. `ialloc`
+1. similar to `balloc`, loops over the inodes, find free one, then write `type` to claim it. 
+2. returns an entry from inode cache with tail call to `iget`
+3. it's designed that way only one process at a time can be holding a reference to `bp`.`
+### II. `iget`
+1. looks through the inode cache for an active entry(`ip->ref` > 0) with the desired device and inode number.
+2. if finds one, it returns new reference to that inode.
+3. as `iget` scans. it records the position of the first empty slot.
+### III. `ilock`
+1. lock the inode using `ilock` before reading or writing its metadata or content. 
+2. `ilock` uses a sleep-lock for this purpose
+3. once it has exclusive access, it reads from disk.
+### IV. `iput`
+1. releases a C pointer to an inode by decrementing the reference count. If last reference, inode's slot in the inode cache is now free and can be reused for a different inode.
+2. if `ref` drops to 0, it release the inode and data blocks, it call `itrunca` to truncate the file to zero bytes. But it's not same for `link`
+3. locking protocol. One danger is that a concurrent thread might be waiting in `ilock` to use this inode and won't be prepared to find that the inode is not longer allocated. This can't happen because there is no way for a system call to get a pointer to a cached inode if it has no linkes to it and `ip->ref` is one.
+4. `iput()` can write to the disk, means any system call uses the file system may write the disk even read-only. This, in turn, means that even read-only system calls must be wrapped in transactions if they use the file system.
+### V. challenge
+1. challenge: `iput()` doesn't truncate a file immediately when link count drops to 0. If a crash happens before the last process closes the file descriptor, the file will be marked allocated but no directory entry will point to it.
+2. solution 1: on recovery, scans whole file system for files that marked allocated but no directory entry pointing to them.
+3. solution 2: use a list to record on disk the inode number of a file whose link count drops to 0 but whose reference count is not 0. On recovery, the file system frees any file in the list.
+## Code: Inode Content
+### I. on-disk inode structure
+1. `struct dinode` contains a size and an array of block numbers.
+![figure1-1](img/8_3.png)
+### II. `bmap`
+`bmap` allocates blocks as needed. An `ip->addrs[]` or indirect entry of zero indicates that no block is allocated. As `bmap` encounters zeros, it replaces them with the numbers of fresh blocks, allocated on demand.
+### III. `itrunc`
+`itrunc` calls `bfree` to free a file's block (direct blocks, indirect block list, indirect block itself), resets the inode's size to 0.
+### IV. `readi` and `writei`
+1. `readi`: if offset larger than size, return 0, but if offset + n larger than size, return fewer bytes. The main loop processes each block of the file, copying data from the buffer into `dst`.
+2. `writei` is identical to `readi` except: offset + n larger than size -> grow file size (up to the maximum size). Then update size. 
+### V. `stati`
+copies inode metadata into the `stat` structure, which is exposed to user programs via the `stat` system call.
+## Code: Directory Layer
+### I. Overview
+1. type `T_DIR` and its data is a sequence of directory entries. 
+2. Each is a `struct dirent` which contains a name and an inode number. Name is at most `DIRSIZ(14)` chars and terminated by a NUL(0).
+### II. `dirlookup`
+searches a directory for an entry with given name. If finds one, it sets `*poff` to the byte offset of the entry within the directory and return a pointer to the corresponding inode (unlocked).
+### III. `dirlink`
+writes a new directory entry with the given name and inode number into the directory `dp`. 
+## Code: Path Names
