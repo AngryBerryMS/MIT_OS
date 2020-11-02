@@ -170,7 +170,6 @@ similar to buffer cache
 3. solution 2: use a list to record on disk the inode number of a file whose link count drops to 0 but whose reference count is not 0. On recovery, the file system frees any file in the list.
 ## Code: Inode Content
 ### I. on-disk inode structure
-1. `struct dinode` contains a size and an array of block numbers.
 ![figure1-1](img/8_3.png)
 ### II. `bmap`
 `bmap` allocates blocks as needed. An `ip->addrs[]` or indirect entry of zero indicates that no block is allocated. As `bmap` encounters zeros, it replaces them with the numbers of fresh blocks, allocated on demand.
