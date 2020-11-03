@@ -206,3 +206,70 @@ writes a new directory entry with the given name and inode number into the direc
 3. deadlock. For example, `next` points to the same node as `ip` when looking up ".". Locking `next` before releasing the lock on `ip` would result in a deadlock. 
 4. to avoid this, `namex` unlocks the directory before obtaining a lock on `next`. Here we see the separation between `iget` and `ilock` is important.
 ## File Descriptor Layer
+### I. Overview
+console, pipes real files are represented as files. File descriptor layer is the layer that archieves this uniformity.
+### II. file table
+1. each process has its own table of open files, or file descriptors.
+2. each open file is represented by a `struct file`, which is a wrapper around either an inode or a pipe, plus an I/O offset.
+3. each call to `open` creates a new open file (a new `struct file`), if multiple processes open the same file independently, the different instances will have different I/O offsets.
+4. a single open file (the same `struct file`) can appear multiple times in one process's file table and also in the tables of multiple processes. (may happen with `dup` or `fork`)
+5. reference count tracks the number of reference to a particular open file.
+### III. `filealloc`, `filedup`, `fileclose`
+1. `filealloc`: allocate a file
+2. `filedup`: create a duplicate reference
+3. `fileclose`: release a reference and read and write data
+### IV. `filestat`, `fileread`, `filewrite`
+implement the `stat`, `read` and `write` operations on files
+1. `filestat` is only allowed on inodes and calls `stati.Fileread`
+2. `filewrite` check that the operation is allowed by the open mode and then pass the call through to either the pipe or inode implementations
+3. if the file represents an inode, `fileread` and `filewrite` use the I/O offset as the offset for the operation and then advance it.
+4. pipes have no concept of offset.
+5. caller to handle locking. 
+6. In inode locking, read and write offsets are updated atomically, so that multiple writing to the same file simultaneously cannot overwrite each other's data.
+## Code: System Calls
+### I. `sys_link` `sys_unlink`
+1. edit directories, creating or removing reference to inodes.
+2. `sys_link(string old, string new)`. 
+3. Assuming `old` exists and is not a directory, increments `ip->nlink`. 
+4. Then calls `nameiparent` to find the parent directory and final path element of `new` and creates a new directory entry pointing at `old`'s inode.
+5. new parent directory must exist and be on the same device as the old. inode numbers only unique on a single disk. If error like this occurs, `sys_link` must go back and decrement `ip->nlink`.
+### II. `create`
+1. used in three system calls: `open` with the `O_CREATE` flag, `mkdir`, `mkdev`.
+2. starts by caling `nameiparent`, then `dirlookup` to check the name already exists.
+3. in `open` if already exist, safe; otherwise, error.
+4. if new inode is a durectory, `create` initializes it with `.` and `..`.
+5. finally, `create` link it into the parent directory. 
+6. like `sys_link`, `create` holds two locks simultaneously: `ip` and `dp`. There is no possibility of deadlock because the inode `ip` is freshly allocated: no other process in the system will hold `ip`'s lock and then try to lock `dp`.
+7. using `create`, it is easy to implement `sys_open`, `sys_mkdir` and `sys_mknod`. 
+8. no other process can access the partially initialized file since it is only the current process table.
+## Real World
+### I. Buffer Cache
+1. purposes: a. caching b. synchronizing access to the disk
+2. a more efficient LRU cache would eliminate the linked list, instead use a hash table for lookups and a heap for LRU evictions.
+3. modern buffer caches are typically integrated with the virtual memory system to support memory-mapped files.
+### II. Logging System
+problems with xv6
+1. a commit cannot occur concurrently with file-system system calls.
+2. the system logs entire blocks, even if only a few bytes in a block are changed.
+3. synchronous log writes, a block at a time, each of which is likely to require an entire disk rotation time.
+### III. Scavenger
+1. another way for crash recovery, trigger during reboot (`fsck` program) to examine every file and directory and the block and inode free lists
+2. looking for and resolving inconsistencies. Scavenging can take hours for large file system, the there are situations cannot be sovled atomically.
+3. recovery from a log is much faster and causes system calls to be atomic in the face of crashes
+### IV. On-disk Layout of Inodes and Directories
+1. `BSD's UFS/FFS` and `Linux's ext2/ext3` use the same data structures. But the directory lookup is inefficient, linear scan.
+2. `Window's NTFS`, `Mac OS X's HFS` and `Solaris's ZFS` implements a directory as an on-disk balanced tree of blocks. This is complicated but guarantees O(logN) directory lookups.
+### V. Disk Failures
+1. xv6 is naive, once disk operation fails, xv6 panics.
+2. operating systems using plain disks should expect failures and handle them more gracefully, so that the loss of a block inone file doesn't affect the use of the rest of the file system.
+### VI. One Disk per File System
+1. solution: combine many disks into a single logical disk.
+2. Hardware solutions such as RAID are the most popular, but the current trend is moving toward implementing as much of this logic in software as possible.
+3. these software implementations typically allow rich functionality like growing or shrinking the logical device by adding or removing disks on the fly, which requires the file system to do the same. 
+4. seperating disk management from the file system may be the cleanest design, but the complex interface between the two has led some systems, like `Sun's ZFS` to combine them.
+### VII. xv6 lack features
+such as snapshots and incremental backup
+### VIII. Resources
+1. named pipes, network connections, remotely-accessed network file systems, and monitoring and control interfaces such as `/proc`.
+2. instead of xv6's `if` statements in `fileread` and `filewrite`, these systems typically give each open file a table of function pointers, one per operation, and call the function pointer to invoke that inode's implementation of the call.
+3. Network file systems and user-level file systems provide functions that turn those calls into network RPCs and wait for the response to be returning.
