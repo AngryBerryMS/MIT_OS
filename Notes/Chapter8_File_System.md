@@ -189,3 +189,20 @@ searches a directory for an entry with given name. If finds one, it sets `*poff`
 ### III. `dirlink`
 writes a new directory entry with the given name and inode number into the directory `dp`. 
 ## Code: Path Names
+### I. Overview
+1. path name lookup involves a seccession of calls to `dirlookup`, one for each component.
+2. `namei` evaluates path and returns the corresponding `inode`.
+3. `nameiparent` is a variant: it copy the final element into `name` and return the inode of the parent directory.
+4. both call the generalized function `namex` to do the real work.
+### II. `namex`
+1. it uses `skipelem` to consider each element of the path in turn.
+2. each iteration of the loop locks `ip` and check that it is a directory. If not the lookup fails. (locking is necessary because until `ilock` runs, `ip->type` is not guaranteed to have been loaded from disk)
+3. loop looks for the path element using the `dirlookup` and prepare for the next iteration by setting `ip next`.
+4. when the loop runs out of path elements, return the unlocked `ip`
+5. could be slow and take several disk operations to read inodes and directory blocks for the directories traversed in the pathname.
+### III. Concurrency challenges
+1. race condition. For example, one kernel thead is looking up a pathname, another changing the directory tree by unlinking a directory.
+2. xv6 avoids such races. (`iget` doesn't use lock, only ref count)
+3. deadlock. For example, `next` points to the same node as `ip` when looking up ".". Locking `next` before releasing the lock on `ip` would result in a deadlock. 
+4. to avoid this, `namex` unlocks the directory before obtaining a lock on `next`. Here we see the separation between `iget` and `ilock` is important.
+## File Descriptor Layer
