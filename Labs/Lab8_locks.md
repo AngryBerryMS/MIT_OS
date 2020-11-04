@@ -73,7 +73,7 @@ kalloc(void)
 ...
 }
 ```
-## Buffer cache (hard) ✔ (partial)
+## Buffer cache (hard) ✔
 ### 1. buf.h
 add two fields
 ```
