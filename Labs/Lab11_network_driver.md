@@ -1,2 +1,2 @@
-# Lab 11: Network Driver
+# Lab 11: Networking
 ## Network Driver (hard)
