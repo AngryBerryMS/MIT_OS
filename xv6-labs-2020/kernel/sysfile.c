@@ -484,3 +484,88 @@ sys_pipe(void)
   }
   return 0;
 }
+
+// // duplicate v, with starting address addr
+// int vmadup(struct vma* v, uint64 addr){
+
+// }
+
+uint64 sys_mmap(){
+  uint64 addr;
+  int length, prot, flags, fd, offset;
+  struct file* pf;
+  argaddr(0,&addr);
+  argint(1,&length);
+  argint(2,&prot);
+  argint(3,&flags);
+  argfd(4,&fd,&pf);
+  argint(5,&offset);
+  if((prot & PROT_WRITE) && !pf->writable && flags == MAP_SHARED)
+    return -1UL;
+  struct proc *p = myproc();
+  for(int i = 0; i < NVMA; i++){
+    if(p->vmatable[i].used != 1){
+      // if vma entry is unused, set it to used
+      struct vma* v = &p->vmatable[i];
+      v->addr = p->sz;
+      v->length = length;
+      v->pf = pf;
+      v->prot = prot;
+      v->used = 1;
+      v->flags = flags;
+      v->offset = offset;
+      growproc(length);
+      filedup(pf);
+      begin_op();
+      ilock(pf->ip);
+      readi(pf->ip,1,v->addr,offset,length);
+      iunlock(pf->ip);
+      end_op();
+      return v->addr;
+    };
+  }
+  return -1UL;
+}
+
+uint64 sys_munmap(){
+  uint64 addr;
+  int length;
+  argaddr(0,&addr);
+  argint(1,&length);
+  struct proc *p = myproc();
+  for(int i = 0; i < NVMA; i++){
+    struct vma* v = &p->vmatable[i];
+    if(addr >= v->addr && addr < v->addr + v->length && v->used == 1){
+      if(v->flags == MAP_SHARED){
+        begin_op();
+        ilock(v->pf->ip);
+        writei(v->pf->ip,1,addr,v->offset+addr-v->addr,length);
+        iunlock(v->pf->ip);
+        end_op();
+      }
+      uvmunmap(p->pagetable,addr,length/PGSIZE,1);
+      // in the middle, create another vma in vmatable
+      if(addr > v->addr){
+        // covers all the rest
+        if(addr + length == v->addr + v->length){
+          v->length = addr - v->addr;
+        } else {
+          panic("sys_munmap: not going to happen");
+          // vmadup(v,addr+length);
+        }
+      } else {
+        // in the beginning
+        if(length == v->length){
+          // totally overlap
+          filederef(v->pf);
+        } else {
+          // not totally
+          v->addr = addr + length;
+          v->length -= length;
+        }
+      }
+      return 0;
+    }
+  }
+  return -1;
+}
