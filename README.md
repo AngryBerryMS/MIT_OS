@@ -1,9 +1,9 @@
 # MIT_OS
 
 ## Progress
-passed all tests: 1, 4, 5, 6, 7, 8, 9, 10
-not started: 11
-lazy to finish: 2, 3
+✔passed all tests: 1, 4, 5, 6, 7, 8, 9, 10\
+❓not started: 11\
+❌lazy to finish: 2, 3
 
 ## Lab Manual
 https://pdos.csail.mit.edu/6.828/2020/index.html
