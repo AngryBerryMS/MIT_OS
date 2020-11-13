@@ -1,4 +1,4 @@
-# Paper 3: vmware
+# Paper 4: vmware
 ## Classical Virtualization
 ### I. de-privileging
 Classical VM executes guest operating system directly, but at a reduced privilege level. The VMM interrupts traps from the de-privileged guest, and emulates the trapping instruction against the virtual machine state.
