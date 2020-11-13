@@ -1,6 +1,6 @@
 # MIT_OS
 
-## Progress
+## Scores
 ✔passed all tests: 1, 4, 5, 6, 7, 8, 9, 10\
 ❌partially passed: 2, 3, 11
 
