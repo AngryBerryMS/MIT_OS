@@ -2,7 +2,7 @@
 ## Network Driver (hard) ❌
 ```
 can pass the ping test and single process ping test occasionally.
-doubt it's an issue of network stabability / UDP reliability
+maybe it's an issue of network stabability / UDP reliability
 ```
 kernel/e1000.c add one more lock
 ```
